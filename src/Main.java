@@ -1,3 +1,7 @@
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -9,26 +13,30 @@ public class Main {
 
     public static void main(String[] args) {
         Map<String, Integer> map = parseIPAddressesAndPortsFromFile();
-        map.forEach((ip, port) -> checkProxy(ip, port));
+        map.entrySet().parallelStream().forEach(e -> checkProxy(e.getKey(), e.getValue()));
     }
 
     /**
-     * Method parses IP addresses and numbers of ports from text file
-     * The data was received from     https://hidemy.name/ru/proxy-list/
-     * @return LinkedHashMap (key : IP address; value : port)
+     * Method parses IP addresses and numbers of ports from https://hidemy.name/ru/proxy-list/
+     * The data was received from <table></table>
+     * @return HashMap (key : IP address; value : port)
      */
 
     public static Map<String, Integer> parseIPAddressesAndPortsFromFile() {
-        File listIp = new File("ip_list.txt");
-        Map<String, Integer> addressCollector = new LinkedHashMap<>();
-        try (BufferedReader buffer = new BufferedReader(new FileReader(listIp.getAbsolutePath()))) {
-            String line;
-            while ((line = buffer.readLine()) != null) {
-                String[] array = line.split("\t");
-                addressCollector.put(array[0], Integer.parseInt(array[1]));
-            }
+        Map<String, Integer> addressCollector = new HashMap<>();
+        Document doc = null;
+        try {
+            doc = Jsoup.connect("https://hidemy.name/ru/proxy-list/")
+                    .userAgent("Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.4; en-US; rv:1.9.2.2) Gecko/20100316 Firefox/3.6.2")
+                    .get();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        Elements listOfIpPort = doc.select("tr > td:nth-child(1):matches(([0-9]{1,3}[\\\\.]){3}[0-9]{1,3}), " +
+                                           "td:nth-child(2):matches(^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$)");
+        for (int i = 0; i < listOfIpPort.size() - 1; i++) {
+            addressCollector.put(listOfIpPort.get(i).text(), Integer.parseInt(listOfIpPort.get(i + 1).text()));
+            i++;
         }
         return addressCollector;
     }
@@ -45,11 +53,11 @@ public class Main {
             Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(ip, port));
             URL url = new URL("https://www.google.com/maps");
             URLConnection urlConnection = url.openConnection(proxy);
-            urlConnection.setConnectTimeout(5000);
-            urlConnection.setReadTimeout(10000);
+            urlConnection.setConnectTimeout(10000);
+            urlConnection.setReadTimeout(20000);
 
-            //InputStream is = urlConnection.getInputStream();
-            //writeDataFromURLToFile(is);
+            InputStream is = urlConnection.getInputStream();
+            writeDataFromURLToFile(is);
 
             writeValidProxyIPAddressToFile(ip, port);
             System.out.println(ip + " - proxy функционирует!");
