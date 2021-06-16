@@ -12,6 +12,9 @@ import java.util.*;
 
 public class Main {
 
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_RED = "\u001B[31m";
+
     public static void main(String[] args) {
         Map<String, Integer> map = createConnectionsList();
         map.entrySet().parallelStream().forEach(e -> checkProxy(e.getKey(), e.getValue()));
@@ -43,7 +46,7 @@ public class Main {
         Map<String, Integer> addressCollector = new HashMap<>();
         Element table = getDocumentFromURL().select("table").first();  //Finding the first table of the document
         Elements rows = table.select("tr");  // Dividing the table into rows by teg
-        for (int i = 1; i < rows.size(); i++) {
+        for (int i = 1; i < rows.size(); i++) {  //Skipping the table header
             Element row = rows.get(i);  //Getting row by index
             Elements columns = row.select("td");  // Dividing the row into columns by teg
             addressCollector.put(columns.get(0).text(), Integer.parseInt(columns.get(1).text()));
@@ -63,16 +66,16 @@ public class Main {
             Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(ip, port));
             URL url = new URL("https://www.google.com/maps");
             URLConnection urlConnection = url.openConnection(proxy);
-            urlConnection.setConnectTimeout(10000);
+            urlConnection.setConnectTimeout(20000);
             urlConnection.setReadTimeout(20000);
 
             InputStream is = urlConnection.getInputStream();
             writeDataFromURLToFile(is);
 
             writeValidProxyIPAddressToFile(ip, port);
-            System.out.println(ip + " - proxy функционирует!");
+            System.out.println(ANSI_GREEN + ip + " - proxy is functioning!");
         } catch (IOException | NoSuchElementException e) {
-            System.out.println(ip + " - не работает!");
+            System.out.println(ANSI_RED + ip + " - is not available!");
         }
     }
 
