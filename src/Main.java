@@ -1,5 +1,6 @@
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.*;
@@ -12,18 +13,16 @@ import java.util.*;
 public class Main {
 
     public static void main(String[] args) {
-        Map<String, Integer> map = parseIPAddressesAndPortsFromFile();
+        Map<String, Integer> map = createConnectionsList();
         map.entrySet().parallelStream().forEach(e -> checkProxy(e.getKey(), e.getValue()));
     }
 
     /**
      * Method parses IP addresses and numbers of ports from https://hidemy.name/ru/proxy-list/
-     * The data was received from <table></table>
-     * @return HashMap (key : IP address; value : port)
+     * @return Document JSOUP (HTML view)
      */
 
-    public static Map<String, Integer> parseIPAddressesAndPortsFromFile() {
-        Map<String, Integer> addressCollector = new HashMap<>();
+    public static Document getDocumentFromURL() {
         Document doc = null;
         try {
             doc = Jsoup.connect("https://hidemy.name/ru/proxy-list/")
@@ -32,11 +31,22 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Elements listOfIpPort = doc.select("tr > td:nth-child(1):matches(([0-9]{1,3}[\\\\.]){3}[0-9]{1,3}), " +
-                                           "td:nth-child(2):matches(^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$)");
-        for (int i = 0; i < listOfIpPort.size() - 1; i++) {
-            addressCollector.put(listOfIpPort.get(i).text(), Integer.parseInt(listOfIpPort.get(i + 1).text()));
-            i++;
+        return doc;
+    }
+
+    /**
+     * Method extracts IP addresses and numbers of ports from Document and puts them into HashMap
+     * @return HashMap (key : IP address; value : port)
+     */
+
+    public static Map<String, Integer> createConnectionsList() {
+        Map<String, Integer> addressCollector = new HashMap<>();
+        Element table = getDocumentFromURL().select("table").first();  //Finding the first table of the document
+        Elements rows = table.select("tr");  // Dividing the table into rows by teg
+        for (int i = 1; i < rows.size(); i++) {
+            Element row = rows.get(i);  //Getting row by index
+            Elements columns = row.select("td");  // Dividing the row into columns by teg
+            addressCollector.put(columns.get(0).text(), Integer.parseInt(columns.get(1).text()));
         }
         return addressCollector;
     }
