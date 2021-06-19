@@ -26,11 +26,11 @@ public class ProxyObject {
     }
 
     /**
-     * Method parses IP addresses and numbers of ports from https://hidemy.name/ru/proxy-list/
+     * Method extracts Document JSOUP from https://hidemy.name/ru/proxy-list/
      * @return Document JSOUP (HTML view)
      */
 
-    private Document getDocumentFromURL() {
+    private static Document getDocumentFromURL() {
         Document doc = null;
         try {
             doc = Jsoup.connect("https://hidemy.name/ru/proxy-list/")
@@ -43,11 +43,11 @@ public class ProxyObject {
     }
 
     /**
-     * Method extracts IP addresses and numbers of ports from Document and adds them to List
-     * @return ArrayList
+     * Method parses IP addresses and numbers of ports from Document and adds them to List
+     * @return List of ProxyObjects
      */
 
-    public List<ProxyObject> createProxiesList() {
+    public static List<ProxyObject> createProxiesList() {
         List<ProxyObject> addressCollector = new ArrayList<>();
         Element table = getDocumentFromURL().select("table").first();  //Finding the first table of the document
         Elements rows = table.select("tr");  // Dividing the table into rows by teg
